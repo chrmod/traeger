@@ -1,0 +1,8 @@
+[package]
+name = "traeger"
+version = "0.1.0"
+authors = ["Krzysztof Jan Modras <chrmod@chrmod.net>"]
+
+[dependencies]
+webextension-rust-template = { git = "https://github.com/chrmod/webextension-rust-template" }
+js = {git = "https://github.com/servo/rust-mozjs", features = ["promises"]}
