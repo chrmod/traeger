@@ -6,6 +6,5 @@ license = "AGPL-3.0"
 authors = ["Krzysztof Jan Modras <chrmod@chrmod.net>"]
 
 [dependencies]
-webextension-protocol = { git = "https://github.com/chrmod/rust-webextension-protocol" }
-#webextension-protocol = { path = "/home/chrmod/Projects/chrmod/webextension-rust-template" }
+webextension-protocol = "0.1.0"
 js = {git = "https://github.com/servo/rust-mozjs", features = ["promises"]}
