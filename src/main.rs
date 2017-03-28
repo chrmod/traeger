@@ -24,11 +24,14 @@ fn main() {
     // thread reads from stdin and send messages to main thread
     thread::spawn(move || {
         loop {
+            let (io_sender, io_receiver) = mpsc::channel();
             let message = match protocol::read_stdin() {
                 Ok(m) => m,
                 Err(_) => panic!("nothing more to read"),
             };
-            sender.send(message).unwrap();
+            sender.send((io_sender, message)).unwrap();
+            let response = io_receiver.recv().unwrap();
+            protocol::write_stdout(response);
         }
     });
 
@@ -43,7 +46,7 @@ fn main() {
         );
 
         loop {
-            let message = rx.recv().unwrap();
+            let (io_sender, message) = rx.recv().unwrap();
 
             rooted!(in(cx) let mut rval = UndefinedValue());
 
@@ -56,7 +59,7 @@ fn main() {
                 let js_string = rval.to_string();
                 let response = latin1_to_string(cx, js_string);
 
-                protocol::write_stdout(response);
+                io_sender.send(response).unwrap();
             }
         }
     }
