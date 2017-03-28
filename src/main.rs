@@ -15,6 +15,8 @@ use std::ptr;
 
 use std::thread;
 use std::sync::mpsc;
+use std::fs::File;
+use std::io::Read;
 
 fn main() {
 
@@ -38,6 +40,11 @@ fn main() {
     let rt = Runtime::new();
     let cx = rt.cx();
 
+
+    let mut scriptFile = File::open("scripts/concat.js").unwrap();
+    let mut script = String::new();
+    scriptFile.read_to_string(&mut script);
+
     unsafe {
         rooted!(in(cx) let global =
             JS_NewGlobalObject(cx, &SIMPLE_GLOBAL_CLASS, ptr::null_mut(),
@@ -45,12 +52,16 @@ fn main() {
                                &CompartmentOptions::default())
         );
 
+        rooted!(in(cx) let mut rval = UndefinedValue());
+        rt.evaluate_script(global.handle(), script.as_str(),
+            "scripts/concat.js", 0, rval.handle_mut());
+
         loop {
             let (io_sender, message) = rx.recv().unwrap();
 
             rooted!(in(cx) let mut rval = UndefinedValue());
 
-            let wrapped_message = "'".to_string() + message.as_str() + "'";
+            let wrapped_message = "concat('".to_string() + message.as_str() + "', '');";
 
             rt.evaluate_script(global.handle(), wrapped_message.as_str(),
                 "incomming-messsage", 1, rval.handle_mut());
