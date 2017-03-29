@@ -17,12 +17,14 @@ use std::thread;
 use std::sync::mpsc;
 use std::fs::File;
 use std::io::Read;
+use std::io::{copy};
+use std::net::{TcpListener, TcpStream, Shutdown};
 
 fn main() {
 
     let (tx, rx) = mpsc::channel();
-    let sender = tx.clone();
 
+    let sender_for_io = tx.clone();
     // thread reads from stdin and send messages to main thread
     thread::spawn(move || {
         loop {
@@ -31,9 +33,45 @@ fn main() {
                 Ok(m) => m,
                 Err(_) => panic!("nothing more to read"),
             };
-            sender.send((io_sender, message)).unwrap();
+            sender_for_io.send((io_sender, message)).unwrap();
             let response = io_receiver.recv().unwrap();
             protocol::write_stdout(response);
+        }
+    });
+
+    let sender_for_http = tx.clone();
+    thread::spawn(move || {
+        let mut listener = TcpListener::bind("127.0.0.1:1090").unwrap();
+        let socket_name = listener.local_addr().unwrap();
+        println_stderr!("Listening on: {}", socket_name);
+
+        loop {
+            match listener.accept() {
+                Err(e) => {
+                    println_stderr!("There was an error omg {}", e)
+                }
+                Ok((stream, remote)) => {
+                    let sender_for_http = tx.clone();
+                    thread::spawn(move || {
+                        println_stderr!("got a connection");
+                        let mut outbound = TcpStream::connect("35.187.22.222:80").unwrap();
+                        let mut client_reader = stream.try_clone().unwrap();
+                        let mut client_writer = stream.try_clone().unwrap();
+                        let mut socket_reader = outbound.try_clone().unwrap();
+                        let mut socket_writer = outbound.try_clone().unwrap();
+
+                        thread::spawn(move || {
+                            copy(&mut client_reader, &mut socket_writer);
+                            client_reader.shutdown(Shutdown::Read);
+                            socket_writer.shutdown(Shutdown::Write);
+                        });
+
+                        copy(&mut socket_reader, &mut client_writer);
+                        socket_reader.shutdown(Shutdown::Read);
+                        client_writer.shutdown(Shutdown::Write);
+                    });
+                }
+            }
         }
     });
 
