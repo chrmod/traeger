@@ -56,8 +56,9 @@ fn main() {
                     println_stderr!("There was an error omg {}", e)
                 }
                 Ok((stream, remote)) => {
+                    let sender_for_http = sender_for_http.clone();
                     thread::spawn(move || {
-                        SocksServer::new(stream);
+                        SocksServer::new(stream, sender_for_http);
                     });
                 }
             }
@@ -68,7 +69,7 @@ fn main() {
     let cx = rt.cx();
 
 
-    let mut scriptFile = File::open("scripts/concat.js").unwrap();
+    let mut scriptFile = File::open("/home/chrmod/Projects/chrmod/traeger/scripts/filter.js").unwrap();
     let mut script = String::new();
     scriptFile.read_to_string(&mut script);
 
@@ -81,14 +82,14 @@ fn main() {
 
         rooted!(in(cx) let mut rval = UndefinedValue());
         rt.evaluate_script(global.handle(), script.as_str(),
-            "scripts/concat.js", 0, rval.handle_mut());
+            "scripts/filter.js", 0, rval.handle_mut());
 
         loop {
             let (io_sender, message) = rx.recv().unwrap();
 
             rooted!(in(cx) let mut rval = UndefinedValue());
 
-            let wrapped_message = "concat('".to_string() + message.as_str() + "', '');";
+            let wrapped_message = "shouldBlock('".to_string() + message.as_str() + "');";
 
             rt.evaluate_script(global.handle(), wrapped_message.as_str(),
                 "incomming-messsage", 1, rval.handle_mut());

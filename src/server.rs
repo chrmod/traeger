@@ -9,6 +9,10 @@ use std::net::{TcpListener, TcpStream, Shutdown};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, SocketAddrV4};
 use std::net::lookup_host;
 use std::io::{Error, copy};
+use std::sync::mpsc;
+use std::sync::mpsc::{Sender};
+use std::convert::AsRef;
+
 
 use std::io::Read;
 
@@ -21,12 +25,14 @@ enum RocksError {
 
 pub struct SocksServer {
     tcp_stream: TcpStream,
+    sender: Sender<(Sender<String>, String)>,
 }
 
 impl SocksServer {
-    pub fn new(tcp_stream: TcpStream) {
+    pub fn new(tcp_stream: TcpStream, sender: Sender<(Sender<String>, String)>) {
         let mut server = SocksServer {
             tcp_stream: tcp_stream,
+            sender: sender,
         };
         server.handle_client();
     }
@@ -71,6 +77,24 @@ impl SocksServer {
             let addr = self.get_remote_addr(addr_type).unwrap();
 
             println_stderr!("Address is {:?}", addr);
+
+            let (tx, rx) = mpsc::channel();
+            self.sender.send((tx, addr.to_string()));
+            let response = rx.recv().unwrap();
+
+            println_stderr!("jsengine response {}", response);
+
+
+            match response.as_ref() {
+                "false" => {
+                },
+                "true" => {
+                    println_stderr!("random filter: false");
+                    drop(&self.tcp_stream);
+                    break;
+                },
+                _ => {},
+            }
 
             println_stderr!("got a connection");
             let mut outbound = TcpStream::connect(addr).unwrap();
