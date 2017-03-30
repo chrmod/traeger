@@ -1,3 +1,5 @@
+#![feature(lookup_host)]
+
 #[macro_use(println_stderr)]
 extern crate webextension_protocol as protocol;
 use std::io::Write;
@@ -17,8 +19,11 @@ use std::thread;
 use std::sync::mpsc;
 use std::fs::File;
 use std::io::Read;
-use std::io::{copy};
+
 use std::net::{TcpListener, TcpStream, Shutdown};
+
+use server::SocksServer;
+mod server;
 
 fn main() {
 
@@ -51,24 +56,8 @@ fn main() {
                     println_stderr!("There was an error omg {}", e)
                 }
                 Ok((stream, remote)) => {
-                    let sender_for_http = tx.clone();
                     thread::spawn(move || {
-                        println_stderr!("got a connection");
-                        let mut outbound = TcpStream::connect("35.187.22.222:80").unwrap();
-                        let mut client_reader = stream.try_clone().unwrap();
-                        let mut client_writer = stream.try_clone().unwrap();
-                        let mut socket_reader = outbound.try_clone().unwrap();
-                        let mut socket_writer = outbound.try_clone().unwrap();
-
-                        thread::spawn(move || {
-                            copy(&mut client_reader, &mut socket_writer);
-                            client_reader.shutdown(Shutdown::Read);
-                            socket_writer.shutdown(Shutdown::Write);
-                        });
-
-                        copy(&mut socket_reader, &mut client_writer);
-                        socket_reader.shutdown(Shutdown::Read);
-                        client_writer.shutdown(Shutdown::Write);
+                        SocksServer::new(stream);
                     });
                 }
             }
