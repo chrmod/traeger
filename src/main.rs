@@ -19,6 +19,7 @@ use std::thread;
 use std::sync::mpsc;
 use std::fs::File;
 use std::io::Read;
+use std::env;
 
 use std::net::{TcpListener, TcpStream, Shutdown};
 
@@ -68,10 +69,13 @@ fn main() {
     let rt = Runtime::new();
     let cx = rt.cx();
 
-
+    /*
+    let current_dir = env::current_dir().unwrap();
     let mut scriptFile = File::open("/home/chrmod/Projects/chrmod/traeger/scripts/filter.js").unwrap();
     let mut script = String::new();
     scriptFile.read_to_string(&mut script);
+    */
+    let script = include_str!("../scripts/filter.js");
 
     unsafe {
         rooted!(in(cx) let global =
@@ -81,7 +85,7 @@ fn main() {
         );
 
         rooted!(in(cx) let mut rval = UndefinedValue());
-        rt.evaluate_script(global.handle(), script.as_str(),
+        rt.evaluate_script(global.handle(), script,
             "scripts/filter.js", 0, rval.handle_mut());
 
         loop {
