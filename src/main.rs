@@ -1,5 +1,7 @@
 #![feature(lookup_host)]
 
+extern crate rustc_serialize;
+
 #[macro_use(println_stderr)]
 extern crate webextension_protocol as protocol;
 use std::io::Write;
@@ -25,6 +27,24 @@ use std::net::{TcpListener, TcpStream, Shutdown};
 
 use server::SocksServer;
 mod server;
+mod helpers;
+
+fn get_listener(ip: String, port: u16, retry: u16) -> Result<TcpListener, ()> {
+    let mut p = port;
+    let mut r = 0;
+    loop {
+        match TcpListener::bind((ip.as_str(), 0)) {
+            Ok(m) => return Ok(m),
+            Err(_) => p += 1,
+        }
+
+        r += 1;
+
+        if (r > retry) {
+            return Err(());
+        }
+    }
+}
 
 fn main() {
 
@@ -46,10 +66,18 @@ fn main() {
     });
 
     let sender_for_http = tx.clone();
+
     thread::spawn(move || {
-        let mut listener = TcpListener::bind("127.0.0.1:1090").unwrap();
-        let socket_name = listener.local_addr().unwrap();
-        println_stderr!("Listening on: {}", socket_name);
+        let mut listener = TcpListener::bind(("127.0.0.1", 0)).unwrap();
+        match listener.local_addr() {
+            Ok(socket_name) => {
+                let port = socket_name.port();
+                let message = helpers::js_message("setPort".to_string(), port.to_string());
+                helpers::send_async(sender_for_http.clone(), message);
+                println_stderr!("Listening on: {}", socket_name);
+            },
+            Err(_) => panic!("cannot aquire port"),
+        }
 
         loop {
             match listener.accept() {
@@ -91,9 +119,10 @@ fn main() {
         loop {
             let (io_sender, message) = rx.recv().unwrap();
 
+
             rooted!(in(cx) let mut rval = UndefinedValue());
 
-            let wrapped_message = "shouldBlock('".to_string() + message.as_str() + "');";
+            let wrapped_message = "onmessage('".to_string() + message.as_str() + "');";
 
             rt.evaluate_script(global.handle(), wrapped_message.as_str(),
                 "incomming-messsage", 1, rval.handle_mut());
@@ -102,6 +131,7 @@ fn main() {
                 let js_string = rval.to_string();
                 let response = latin1_to_string(cx, js_string);
 
+                println_stderr!("js returned: {}", response);
                 io_sender.send(response).unwrap();
             }
         }

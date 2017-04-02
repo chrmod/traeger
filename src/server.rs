@@ -13,6 +13,7 @@ use std::sync::mpsc;
 use std::sync::mpsc::{Sender};
 use std::convert::AsRef;
 
+use helpers;
 
 use std::io::Read;
 
@@ -78,9 +79,8 @@ impl SocksServer {
 
             println_stderr!("Address is {:?}", addr);
 
-            let (tx, rx) = mpsc::channel();
-            self.sender.send((tx, addr.to_string()));
-            let response = rx.recv().unwrap();
+            let msg = helpers::js_message("getBlock".to_string(), "\"".to_string()+addr.to_string().as_str()+"\"");
+            let response = helpers::send_sync(self.sender.clone(), msg);
 
             println_stderr!("jsengine response {}", response);
 
@@ -89,7 +89,6 @@ impl SocksServer {
                 "false" => {
                 },
                 "true" => {
-                    println_stderr!("random filter: false");
                     drop(&self.tcp_stream);
                     break;
                 },
