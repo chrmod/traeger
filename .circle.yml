@@ -1,0 +1,9 @@
+machine:
+    pre:
+        - curl -sS https://static.rust-lang.org/rustup.sh | sudo sh
+        - rustup override set nighlty
+        - rustup update nightly
+
+test:
+    override:
+        - cargo build -v
