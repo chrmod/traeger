@@ -2,14 +2,13 @@
 # https://github.com/japaric/trust/tree/v0.1.1
 
 environment:
+  RUST_BACKTRACE: full
   global:
     RUST_VERSION: nightly
     CRATE_NAME: traeger
 
   matrix:
-    # MSVC
-    - TARGET: i686-pc-windows-msvc
-    - TARGET: x86_64-pc-windows-msvc
+    - TARGET: nightly-x86_64-pc-windows-msvc
 
 install:
   - curl -sSf -o rustup-init.exe https://win.rustup.rs/
@@ -19,12 +18,13 @@ install:
   - cargo -V
 
 # TODO This is the "test phase", tweak it as you see fit
-test_script:
+build_script:
   # we don't run the "test phase" when doing deploys
-  - set RUST_BACKTRACE=full
   - if [%APPVEYOR_REPO_TAG%]==[false] (
       cargo build --target %TARGET% --verbose
     )
+
+tests: false
 
 cache:
   - C:\Users\appveyor\.cargo\registry
