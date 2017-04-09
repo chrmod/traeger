@@ -24,7 +24,7 @@ build_script:
       cargo build --target %TARGET% --verbose
     )
 
-tests: false
+test: off
 
 cache:
   - C:\Users\appveyor\.cargo\registry
