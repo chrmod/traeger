@@ -21,8 +21,9 @@ install:
 # TODO This is the "test phase", tweak it as you see fit
 test_script:
   # we don't run the "test phase" when doing deploys
+  - set RUST_BACKTRACE=full
   - if [%APPVEYOR_REPO_TAG%]==[false] (
-      cargo build --target %TARGET%
+      cargo build --target %TARGET% --verbose
     )
 
 cache:
