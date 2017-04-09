@@ -3,6 +3,32 @@
 
 environment:
   RUST_BACKTRACE: full
+  CCACHE_DIR: "%APPVEYOR_BUILD_FOLDER%\\.ccache"
+  # The appveyor image we use has a pretty huge set of things installed... we make the
+  # initial PATH something sane so we know what to expect
+  PATH: "C:\\windows\\system32;\
+    C:\\windows;\
+    C:\\windows\\System32\\Wbem;\
+    C:\\windows\\System32\\WindowsPowerShell\\v1.0;\
+    C:\\ProgramData\\chocolatey\\bin;\
+    C:\\Python27;\
+    C:\\Python27\\Scripts;\
+    C:\\Tools\\PsTools;\
+    C:\\Tools\\NuGet3;\
+    C:\\Program Files\\Microsoft\\Web Platform Installer\\;\
+    C:\\Program Files\\7-Zip;\
+    C:\\Program Files\\Mercurial;\
+    C:\\Program Files (x86)\\Subversion\\bin;\
+    C:\\Program Files (x86)\\CMake\\bin;\
+    C:\\Program Files (x86)\\Windows Kits\\10\\Windows Performance Toolkit\\;\
+    C:\\Program Files (x86)\\MSBuild\\14.0\\Bin;\
+    C:\\Program Files\\Amazon\\AWSCLI\\;\
+    C:\\Program Files\\Microsoft Windows Performance Toolkit\\;\
+    C:\\Program Files\\LLVM\\bin;\
+    C:\\Program Files\\Git LFS;\
+    C:\\Program Files\\Git\\cmd;\
+    C:\\Program Files\\Git\\usr\\bin;\
+    C:\\Program Files\\AppVeyor\\BuildAgent;"
   global:
     RUST_VERSION: nightly
     CRATE_NAME: traeger
@@ -11,24 +37,29 @@ environment:
     - TARGET: nightly-x86_64-pc-windows-msvc
 
 install:
-  - curl -sSf -o rustup-init.exe https://win.rustup.rs/
-  - rustup-init.exe -y --default-host %TARGET% --default-toolchain %RUST_VERSION%
-  - set PATH=%PATH%;C:\Users\appveyor\.cargo\bin
-  - rustc -Vv
-  - cargo -V
-
-# TODO This is the "test phase", tweak it as you see fit
-build_script:
-  # we don't run the "test phase" when doing deploys
-  - if [%APPVEYOR_REPO_TAG%]==[false] (
-      cargo build --target %TARGET% --verbose
-    )
-
-test: off
+  - ps: Start-FileDownload "http://servo-rust.s3.amazonaws.com/build/MozillaBuildSetup-2.2.0.exe"
+  - ps: .\MozillaBuildSetup-2.2.0.exe /S | Out-Null
+  - ps: Start-FileDownload "https://static.rust-lang.org/dist/rust-${env:TARGET}.exe" -FileName "rust-install.exe"
+  - ps: .\rust-install.exe /VERYSILENT /NORESTART /DIR="C:\rust" | Out-Null
+  - ps: $env:PATH="$env:PATH;C:\rust\bin"
+  - if %TARGET:*-msvc=msvc%==msvc set BUILD_ENV=msvc
+  - if %BUILD_ENV%==msvc call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin\amd64\vcvars64.bat"
+  - if %BUILD_ENV%==msvc copy C:\mozilla-build\yasm\yasm.exe C:\mozilla-build\msys\bin
+  - if %BUILD_ENV%==msvc copy C:\mozilla-build\mozmake\mozmake.exe C:\mozilla-build\msys\bin
+  - if %BUILD_ENV%==msvc set MOZTOOLS_PATH=C:\mozilla-build\msys\bin
+  - if %BUILD_ENV%==msvc set NATIVE_WIN32_PYTHON=C:/Python27/python.exe
+  - rustc -vV
+  - cargo -vV
 
 cache:
-  - C:\Users\appveyor\.cargo\registry
-  - target
+  - .servo -> rust-commit-hash, cargo-commit-hash
+  - .cargo -> rust-commit-hash, cargo-commit-hash
+  - .ccache
+
+build_script:
+  cargo build --verbose
+
+test: off
 
 branches:
   only:
@@ -37,6 +68,3 @@ branches:
 notifications:
   - provider: Email
     on_build_success: false
-
-# disable automatic builds
-build: false
