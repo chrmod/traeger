@@ -47,7 +47,7 @@ install:
   - if %BUILD_ENV%==msvc copy C:\mozilla-build\yasm\yasm.exe C:\mozilla-build\msys\bin
   - if %BUILD_ENV%==msvc copy C:\mozilla-build\mozmake\mozmake.exe C:\mozilla-build\msys\bin
   - if %BUILD_ENV%==msvc set MOZTOOLS_PATH=C:\mozilla-build\msys\bin
-  - if %BUILD_ENV%==msvc set NATIVE_WIN32_PYTHON=C:/Python27/python.exe
+#  - if %BUILD_ENV%==msvc set NATIVE_WIN32_PYTHON=C:/Python27/python.exe
   - rustc -vV
   - cargo -vV
 
