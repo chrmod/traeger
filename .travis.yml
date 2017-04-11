@@ -1,17 +1,39 @@
 language: rust
 sudo: 9000
 dist: trusty
-rust:
-  - nightly
-os:
-  - linux
-  - osx
+rust: nightly
+
+env:
+  - TARGET=x86_64-unknown-linux-gnu
+
+matrix:
+  include:
+    - env: TARGET=x86_64-apple-darwin
+      os: osx
 
 before_install:
 - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install ccache yasm; fi
 
 script:
   - ccache -z
-  - CCACHE=$(which ccache) travis_wait cargo build --verbose $FEATURES
-#  - CCACHE=$(which ccache) cargo test --verbose $FEATURES
+  - CCACHE=$(which ccache) travis_wait cargo build --verbose $FEATURES --target $TARGET
   - ccache -s
+
+notifications:
+  email:
+    on_success: never
+
+before_deploy:
+  - ccache -z
+  - CCACHE=$(which ccache) travis_wait cargo build $FEATURES --release --target $TARGET
+  - ccache -s
+  - cp target/$TARGET/release/traeger traeger-$TRAVIS_TAG-$TARGET
+
+deploy:
+  api_key: $GITHUB_API_KEY
+  file_glob: true
+  file: traeger-$TRAVIS_TAG-$TARGET
+  on:
+    tags: true
+  provider: releases
+  skip_cleanup: true
