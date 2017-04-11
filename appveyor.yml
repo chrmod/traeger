@@ -63,7 +63,20 @@ test: off
 
 branches:
   only:
+    - /^v\d+\.\d+\.\d+.*$/
     - master
+
+before_deploy:
+  - cargo build --release --target %TARGET%
+  - COPY target\%TARGET%\release\traeger.exe traeger-%APPVEYOR_REPO_TAG_NAME%-%TARGET%
+
+deploy:
+  artifact: traeger-%TRAVIS_TAG%-%TARGET%
+  auth_token:
+    secure: URnWKwvB3B4OyvTmuf0yIHAuxfQQBmL6bEm47A8LAwv9528u6t8MguJwKVmopHY8
+  on:
+    appveyor_repo_tag: true
+  provider: GitHub
 
 notifications:
   - provider: Email
