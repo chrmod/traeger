@@ -67,7 +67,7 @@ branches:
     - master
 
 before_deploy:
-  - cargo build --release --target %TARGET%
+  - cargo build --release --target %TARGET% --verbose
   - COPY target\%TARGET%\release\traeger.exe traeger-%APPVEYOR_REPO_TAG_NAME%-%TARGET%
 
 deploy:
