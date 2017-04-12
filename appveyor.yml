@@ -65,10 +65,10 @@ branches:
 
 before_deploy:
   - cargo build --release --target %TARGET% --verbose
-  - COPY target\%TARGET%\release\traeger.exe traeger-%APPVEYOR_REPO_TAG_NAME%-%TARGET%
+  - COPY target\%TARGET%\release\traeger.exe traeger-%APPVEYOR_REPO_TAG_NAME%-%TARGET%.exe
 
 deploy:
-  artifact: traeger-%TRAVIS_TAG%-%TARGET%
+  artifact: traeger-%APPVEYOR_REPO_TAG_NAME%-%TARGET%.exe
   auth_token:
     secure: URnWKwvB3B4OyvTmuf0yIHAuxfQQBmL6bEm47A8LAwv9528u6t8MguJwKVmopHY8
   on:
