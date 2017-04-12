@@ -66,7 +66,7 @@ branches:
 before_deploy:
   - cargo build --release --target %TARGET% --verbose
   - COPY target\%TARGET%\release\traeger.exe traeger-%APPVEYOR_REPO_TAG_NAME%-%TARGET%.exe
-  - ps: Push-AppveyorArtifact traeger-%APPVEYOR_REPO_TAG_NAME%-%TARGET%.exe
+  - ps: Push-AppveyorArtifact traeger-$($Env:APPVEYOR_REPO_TAG_NAME)-$($End:TARGET).exe
 
 deploy:
   artifact: traeger-%APPVEYOR_REPO_TAG_NAME%-%TARGET%.exe
