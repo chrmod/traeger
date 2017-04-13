@@ -97,13 +97,7 @@ fn main() {
     let rt = Runtime::new().unwrap();
     let cx = rt.cx();
 
-    /*
-    let current_dir = env::current_dir().unwrap();
-    let mut scriptFile = File::open("/home/chrmod/Projects/chrmod/traeger/scripts/filter.js").unwrap();
-    let mut script = String::new();
-    scriptFile.read_to_string(&mut script);
-    */
-    let script = include_str!("../scripts/filter.js");
+    let script = include_str!("../static/app.js");
 
     unsafe {
         rooted!(in(cx) let global =
@@ -114,7 +108,7 @@ fn main() {
 
         rooted!(in(cx) let mut rval = UndefinedValue());
         rt.evaluate_script(global.handle(), script,
-            "scripts/filter.js", 0, rval.handle_mut());
+            "static/app.js", 0, rval.handle_mut());
 
         loop {
             let (io_sender, message) = rx.recv().unwrap();

@@ -1,0 +1,9 @@
+{
+  "name": "traeger",
+  "description": "",
+  "path": "",
+  "type": "stdio",
+  "allowed_extensions": [
+    "traeger@chrmod.net"
+  ]
+}
