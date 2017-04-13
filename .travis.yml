@@ -1,7 +1,7 @@
 language: rust
 sudo: 9000
 dist: trusty
-rust: nightly
+rust: nightly-2017-04-11
 
 env:
   - TARGET=x86_64-unknown-linux-gnu
