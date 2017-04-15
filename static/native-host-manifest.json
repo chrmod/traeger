@@ -5,5 +5,8 @@
   "type": "stdio",
   "allowed_extensions": [
     "traeger@chrmod.net"
+  ],
+  "allowed_origins": [
+    "chrome-extension://eghkfeobibbljcgmppnhpfafknmpjlde"
   ]
 }
