@@ -1,3 +1,5 @@
+#[warn(unused_must_use)]
+
 // copied mostly from public domain https://github.com/zmack/rust-socks/blob/master/src/server.rs
 extern crate byteorder;
 extern crate webextension_protocol as protocol;
@@ -5,11 +7,10 @@ extern crate webextension_protocol as protocol;
 use std::thread;
 use std::time::Duration;
 use std::io::Write;
-use std::net::{TcpListener, TcpStream, Shutdown};
-use std::net::{IpAddr, Ipv4Addr, SocketAddr, SocketAddrV4};
+use std::net::{TcpStream, Shutdown};
+use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
 use std::net::lookup_host;
 use std::io::{Error, copy};
-use std::sync::mpsc;
 use std::sync::mpsc::{Sender};
 use std::convert::AsRef;
 
@@ -17,8 +18,9 @@ use helpers;
 
 use std::io::Read;
 
-use server::byteorder::{BigEndian, LittleEndian, ReadBytesExt, WriteBytesExt};
+use server::byteorder::{BigEndian, ReadBytesExt};
 
+#[allow(dead_code)]
 enum RocksError {
     Io(Error),
     Generic(String)
@@ -30,6 +32,8 @@ pub struct SocksServer {
 }
 
 impl SocksServer {
+
+    #[allow(unused_must_use)]
     pub fn new(tcp_stream: TcpStream, sender: Sender<(Sender<String>, String)>) {
         let mut server = SocksServer {
             tcp_stream: tcp_stream,
@@ -38,20 +42,21 @@ impl SocksServer {
         server.handle_client();
     }
 
+    #[allow(unused_must_use)]
     fn handle_client(&mut self) -> Result<(), RocksError> {
         loop {
             let version = match self.tcp_stream.read_u8() {
                 Ok(v) => v ,
                 _ => break,
             };
-            if (version == 5) {
+            if version == 5 {
                 println_stderr!("wrong protocol version");
                 let num_methods = self.tcp_stream.read_u8().unwrap();
                 let mut methods = Vec::with_capacity(num_methods as usize);
                 unsafe { methods.set_len(num_methods as usize) };
                 self.tcp_stream.read_exact(&mut methods).unwrap();
                 println_stderr!("num_methods is {:?}, methods is {:?}", num_methods, methods);
-                if (methods.contains(&2)) {
+                if methods.contains(&2) {
                     // Authenticated
                     self.tcp_stream.write(&[5, 2]);
                     //self.authenticate().unwrap()
@@ -96,7 +101,7 @@ impl SocksServer {
             }
 
             println_stderr!("got a connection");
-            let mut outbound = TcpStream::connect(addr).unwrap();
+            let outbound = TcpStream::connect(addr).unwrap();
             outbound.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
 
             self.tcp_stream.write(&[5, 0, 0, 1, 127, 0, 0, 1, 0, 0]).unwrap();
@@ -121,6 +126,7 @@ impl SocksServer {
         return Ok(())
     }
 
+    #[allow(unused_must_use)]
     fn get_remote_addr(&mut self, addr_type: u8) -> Result<SocketAddr, String> {
         match addr_type {
             1 => {
