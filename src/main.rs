@@ -19,33 +19,14 @@ use std::ptr;
 
 use std::thread;
 use std::sync::mpsc;
-use std::fs::File;
-use std::io::Read;
-use std::env;
 
-use std::net::{TcpListener, TcpStream, Shutdown};
+use std::net::{TcpListener};
 
 use server::SocksServer;
 mod server;
 mod helpers;
 
-fn get_listener(ip: String, port: u16, retry: u16) -> Result<TcpListener, ()> {
-    let mut p = port;
-    let mut r = 0;
-    loop {
-        match TcpListener::bind((ip.as_str(), 0)) {
-            Ok(m) => return Ok(m),
-            Err(_) => p += 1,
-        }
-
-        r += 1;
-
-        if (r > retry) {
-            return Err(());
-        }
-    }
-}
-
+#[allow(unused_must_use)]
 fn main() {
 
     let (tx, rx) = mpsc::channel();
@@ -68,7 +49,7 @@ fn main() {
     let sender_for_http = tx.clone();
 
     thread::spawn(move || {
-        let mut listener = TcpListener::bind(("127.0.0.1", 0)).unwrap();
+        let listener = TcpListener::bind(("127.0.0.1", 0)).unwrap();
         match listener.local_addr() {
             Ok(socket_name) => {
                 let port = socket_name.port();
@@ -84,7 +65,7 @@ fn main() {
                 Err(e) => {
                     println_stderr!("There was an error omg {}", e)
                 }
-                Ok((stream, remote)) => {
+                Ok((stream, _)) => {
                     let sender_for_http = sender_for_http.clone();
                     thread::spawn(move || {
                         SocksServer::new(stream, sender_for_http);
@@ -121,7 +102,7 @@ fn main() {
             rt.evaluate_script(global.handle(), wrapped_message.as_str(),
                 "incomming-messsage", 1, rval.handle_mut());
 
-            if (rval.is_string()) {
+            if rval.is_string() {
                 let js_string = rval.to_string();
                 let response = latin1_to_string(cx, js_string);
 

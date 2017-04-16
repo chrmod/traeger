@@ -13,12 +13,14 @@ pub fn js_message(action: String, args: String) -> String {
         + "]}";
 }
 
+#[allow(unused_must_use)]
 pub fn send_async(sender: JSSender, message: String) {
     let (tx, rx) = mpsc::channel();
     sender.send((tx, message));
     rx.recv().unwrap();
 }
 
+#[allow(unused_must_use)]
 pub fn send_sync(sender: JSSender, message: String) -> String {
     let (tx, rx) = mpsc::channel();
     sender.send((tx, message));
