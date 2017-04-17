@@ -1,6 +1,7 @@
 #![feature(lookup_host)]
 
 extern crate rustc_serialize;
+extern crate libc;
 
 #[macro_use(println_stderr)]
 extern crate webextension_protocol as protocol;
@@ -10,7 +11,12 @@ use std::io::Write;
 extern crate js;
 use js::jsapi::JS_NewGlobalObject;
 use js::jsapi::CompartmentOptions;
+use js::jsapi::JSAutoCompartment;
 use js::jsapi::OnNewGlobalHookOption;
+use js::jsapi::JSContext;
+use js::jsapi::Value;
+use js::jsapi::CallArgs;
+use js::jsapi::JS_DefineFunction;
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use js::rust::SIMPLE_GLOBAL_CLASS;
@@ -86,6 +92,10 @@ fn main() {
                                OnNewGlobalHookOption::FireOnNewGlobalHook,
                                &CompartmentOptions::default())
         );
+        let _ac = JSAutoCompartment::new(cx, global.handle().get());
+        JS_DefineFunction(cx, global.handle(),
+                          b"log\0".as_ptr() as *const libc::c_char,
+                          Some(log), 1, 0);
 
         rooted!(in(cx) let mut rval = UndefinedValue());
         rt.evaluate_script(global.handle(), script,
@@ -111,4 +121,13 @@ fn main() {
             }
         }
     }
+}
+
+unsafe extern "C" fn log(cx: *mut JSContext, argc: u32, vp: *mut Value) -> bool {
+    let args = CallArgs::from_vp(vp, argc);
+    let arg = args.get(0);
+    let js_string = js::rust::ToString(cx, arg);
+    let string = latin1_to_string(cx, js_string);
+    println_stderr!("{}", string);
+    return true;
 }
