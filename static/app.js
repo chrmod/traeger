@@ -17,6 +17,8 @@ var actions = {
 }
 
 onmessage = function(message) {
+  log(`js received: ${message}`);
+
   var response;
   var responseId;
   try {
