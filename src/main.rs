@@ -9,19 +9,6 @@ use std::io::Write;
 
 #[macro_use]
 extern crate js;
-use js::jsapi::JS_NewGlobalObject;
-use js::jsapi::CompartmentOptions;
-use js::jsapi::JSAutoCompartment;
-use js::jsapi::OnNewGlobalHookOption;
-use js::jsapi::JSContext;
-use js::jsapi::Value;
-use js::jsapi::CallArgs;
-use js::jsapi::JS_DefineFunction;
-use js::jsval::UndefinedValue;
-use js::rust::Runtime;
-use js::rust::SIMPLE_GLOBAL_CLASS;
-use js::conversions::latin1_to_string;
-use std::ptr;
 
 use std::thread;
 use std::sync::mpsc;
@@ -29,6 +16,9 @@ use std::sync::mpsc;
 use std::net::{TcpListener};
 
 use server::SocksServer;
+use js_engine::JsEngine;
+
+mod js_engine;
 mod server;
 mod helpers;
 
@@ -81,53 +71,12 @@ fn main() {
         }
     });
 
-    let rt = Runtime::new().unwrap();
-    let cx = rt.cx();
+    let mut js_engine = JsEngine::new();
 
-    let script = include_str!("../static/app.js");
-
-    unsafe {
-        rooted!(in(cx) let global =
-            JS_NewGlobalObject(cx, &SIMPLE_GLOBAL_CLASS, ptr::null_mut(),
-                               OnNewGlobalHookOption::FireOnNewGlobalHook,
-                               &CompartmentOptions::default())
-        );
-        let _ac = JSAutoCompartment::new(cx, global.handle().get());
-        JS_DefineFunction(cx, global.handle(),
-                          b"log\0".as_ptr() as *const libc::c_char,
-                          Some(log), 1, 0);
-
-        rooted!(in(cx) let mut rval = UndefinedValue());
-        rt.evaluate_script(global.handle(), script,
-            "static/app.js", 0, rval.handle_mut());
-
-        loop {
-            let (io_sender, message) = rx.recv().unwrap();
-
-
-            rooted!(in(cx) let mut rval = UndefinedValue());
-
-            let wrapped_message = "onmessage('".to_string() + message.as_str() + "');";
-
-            rt.evaluate_script(global.handle(), wrapped_message.as_str(),
-                "incomming-messsage", 1, rval.handle_mut());
-
-            if rval.is_string() {
-                let js_string = rval.to_string();
-                let response = latin1_to_string(cx, js_string);
-
-                println_stderr!("js returned: {}", response);
-                io_sender.send(response).unwrap();
-            }
-        }
+    loop {
+        let (io_sender, message) = rx.recv().unwrap();
+        let response = js_engine.post_message(message);
+        println_stderr!("js returned: {}", response);
+        io_sender.send(response).unwrap();
     }
-}
-
-unsafe extern "C" fn log(cx: *mut JSContext, argc: u32, vp: *mut Value) -> bool {
-    let args = CallArgs::from_vp(vp, argc);
-    let arg = args.get(0);
-    let js_string = js::rust::ToString(cx, arg);
-    let string = latin1_to_string(cx, js_string);
-    println_stderr!("{}", string);
-    return true;
 }
