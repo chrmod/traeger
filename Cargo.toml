@@ -9,7 +9,7 @@ authors = ["Krzysztof Jan Modras <chrmod@chrmod.net>"]
 byteorder = "1.0.0"
 webextension-protocol = "0.1.0"
 rustc-serialize = "0.3"
-js = {git = "https://github.com/servo/rust-mozjs", features = ["promises"], rev="7f380abcbe02604cca5f28ff4175dff2a4f5555e" }
+js = {git = "https://github.com/servo/rust-mozjs", features = ["promises"] }
 libc = "0.2"
 
 [target.x86_64-unknown-linux-gnu]
