@@ -10,15 +10,33 @@ use std::io::Write;
 use std::net::{TcpStream, Shutdown};
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
 use std::net::lookup_host;
-use std::io::{Error, copy};
+use std::io::{Error,ErrorKind};
+use std::io;
 use std::sync::mpsc::{Sender};
 use std::convert::AsRef;
-
 use helpers;
 
 use std::io::Read;
 
 use server::byteorder::{BigEndian, ReadBytesExt};
+
+
+pub fn copy<R: ?Sized, W: ?Sized>(reader: &mut R, writer: &mut W) -> io::Result<u64>
+    where R: Read, W: Write
+{
+    let mut buf = [0; 8*1024];
+    let mut written = 0;
+    loop {
+        let len = match reader.read(&mut buf) {
+            Ok(0) => return Ok(written),
+            Ok(len) => len,
+            Err(ref e) if e.kind() == ErrorKind::Interrupted => continue,
+            Err(e) => return Err(e),
+        };
+        writer.write_all(&buf[..len])?;
+        written += len as u64;
+    }
+}
 
 #[allow(dead_code)]
 enum RocksError {
