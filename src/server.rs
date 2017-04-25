@@ -33,6 +33,8 @@ pub fn copy<R: ?Sized, W: ?Sized>(reader: &mut R, writer: &mut W) -> io::Result<
             Err(ref e) if e.kind() == ErrorKind::Interrupted => continue,
             Err(e) => return Err(e),
         };
+
+        println_stderr!("READ {}", buf.iter().fold(String::new(), |acc, &num| acc + (num as char).to_string().as_str() ));
         writer.write_all(&buf[..len])?;
         written += len as u64;
     }
