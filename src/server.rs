@@ -3,6 +3,7 @@
 // copied mostly from public domain https://github.com/zmack/rust-socks/blob/master/src/server.rs
 extern crate byteorder;
 extern crate webextension_protocol as protocol;
+use std::net::{TcpListener};
 
 use std::thread;
 use std::time::Duration;
@@ -20,7 +21,6 @@ use std::io::Read;
 
 use server::byteorder::{BigEndian, ReadBytesExt};
 
-
 pub fn copy<R: ?Sized, W: ?Sized>(reader: &mut R, writer: &mut W) -> io::Result<u64>
     where R: Read, W: Write
 {
@@ -37,6 +37,47 @@ pub fn copy<R: ?Sized, W: ?Sized>(reader: &mut R, writer: &mut W) -> io::Result<
         println_stderr!("READ {}", buf.iter().fold(String::new(), |acc, &num| acc + (num as char).to_string().as_str() ));
         writer.write_all(&buf[..len])?;
         written += len as u64;
+    }
+}
+
+
+pub struct ServerWrapper {
+    sender: Sender<(Sender<String>, String)>,
+    listener: TcpListener,
+}
+
+impl ServerWrapper {
+    pub fn new(sender: Sender<(Sender<String>, String)>) -> ServerWrapper {
+        let listener = TcpListener::bind(("127.0.0.1", 0)).unwrap();
+        match listener.local_addr() {
+            Ok(socket_name) => {
+                let port = socket_name.port();
+                let message = helpers::js_message("setPort".to_string(), port.to_string());
+                helpers::send_async(sender.clone(), message);
+                println_stderr!("Listening on: {}", socket_name);
+            },
+            Err(_) => panic!("cannot aquire port"),
+        }
+        ServerWrapper {
+            sender: sender,
+            listener: listener
+        }
+    }
+
+    pub fn start(&mut self) {
+        loop {
+            match self.listener.accept() {
+                Err(e) => {
+                    println_stderr!("There was an error omg {}", e)
+                }
+                Ok((stream, _)) => {
+                    let sender = self.sender.clone();
+                    thread::spawn(move || {
+                        SocksServer::new(stream, sender);
+                    });
+                }
+            }
+        }
     }
 }
 
